@@ -1,0 +1,10 @@
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/projet-reseau.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/projet-reseau_qmlimportscan.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/edit_cache.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/rebuild_cache.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/list_install_components.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/install.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/install/local.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/install/strip.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/projet-reseau_autogen_timestamp_deps.dir
+C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/CMakeFiles/projet-reseau_autogen.dir
