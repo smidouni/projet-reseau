@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Location Positioning Graphs)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Location Positioning Graphs)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Location Positioning Graphs Quick)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Location Positioning Graphs Quick)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -38,7 +38,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(projet-reseau PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Location Qt${QT_VERSION_MAJOR}::Positioning Qt${QT_VERSION_MAJOR}::Graphs)
+target_link_libraries(projet-reseau PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Location Qt${QT_VERSION_MAJOR}::Positioning Qt${QT_VERSION_MAJOR}::Graphs Qt${QT_VERSION_MAJOR}::Quick)
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.projet-reseau)
