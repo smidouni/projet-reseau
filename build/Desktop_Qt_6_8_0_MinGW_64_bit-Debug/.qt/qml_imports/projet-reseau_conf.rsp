@@ -1,9 +1,0 @@
--rootPath
-C:/Users/Kader/Desktop/projetReseaux/projet-reseau
--cmake-output
--output-file
-C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug/.qt/qml_imports/projet-reseau_conf.cmake
--importPath
-C:/Users/Kader/Desktop/projetReseaux/projet-reseau/build/Desktop_Qt_6_8_0_MinGW_64_bit-Debug
--importPath
-C:/Qt/6.8.0/mingw_64/qml
