@@ -2,29 +2,46 @@ cmake_minimum_required(VERSION 3.16)
 
 project(projet-reseau VERSION 0.1 LANGUAGES CXX)
 
+# Set CMake options for automatic handling of Qt resources, UIC, and MOC
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# Specify the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Location Positioning Graphs Quick)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Location Positioning Graphs Quick)
+# Find either Qt5 or Qt6, depending on what's available, and find the required components
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Location Positioning Graphs Quick Network QuickWidgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Location Positioning Graphs Quick Network QuickWidgets)
 
+# Define the source files (exclude headers)
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+    main.cpp
+    MainWindow.cpp
+    MainWindow.h
+    MainWindow.ui
+    MapView.qml
+    resources.qrc
+    osmimporter.cpp
+    osmimporter.h
+    graph.cpp
+    graph.h
+    path.cpp
+    path.h
+    simulationmanager.cpp
+    simulationmanager.h
+    vehicle.cpp
+    vehicle.h
+    edge.h
+    node.h
 )
 
+# Define the executable
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(projet-reseau
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        MapView.qml
-        resources.qrc
     )
 else()
     if(ANDROID)
@@ -38,11 +55,22 @@ else()
     endif()
 endif()
 
-target_link_libraries(projet-reseau PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Location Qt${QT_VERSION_MAJOR}::Positioning Qt${QT_VERSION_MAJOR}::Graphs Qt${QT_VERSION_MAJOR}::Quick)
+# Link the necessary Qt modules
+target_link_libraries(projet-reseau PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Location
+    Qt${QT_VERSION_MAJOR}::Positioning
+    Qt${QT_VERSION_MAJOR}::Graphs
+    Qt${QT_VERSION_MAJOR}::Quick
+    Qt${QT_VERSION_MAJOR}::Network
+    Qt${QT_VERSION_MAJOR}::QuickWidgets
+)
 
+# Set Mac and Windows specific properties for the bundle
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.projet-reseau)
+    set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.projet-reseau)
 endif()
+
 set_target_properties(projet-reseau PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -51,6 +79,7 @@ set_target_properties(projet-reseau PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+# Installation configuration
 include(GNUInstallDirs)
 install(TARGETS projet-reseau
     BUNDLE DESTINATION .
@@ -58,6 +87,7 @@ install(TARGETS projet-reseau
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+# Finalize executable for Qt 6
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(projet-reseau)
 endif()

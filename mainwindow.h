@@ -2,22 +2,31 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QQuickWidget>
+#include <QPushButton>
+#include <QSlider>
+#include "SimulationManager.h"
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
-QT_END_NAMESPACE
-
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    explicit MainWindow(Graph *graph, double centerLat, double centerLon, int zoomLevel, QWidget *parent = nullptr);
+
+public slots:
+    void updateMap();
+    void setSimulationSpeed(double speedFactor);
 
 private:
-    Ui::MainWindow *ui;
+    QQuickWidget *mapView;
+    SimulationManager *simManager;
+    double centerLat;
+    double centerLon;
+    int zoomLevel;
+
+    void setupUI();
+    void setupMap();
+    void setupControls();
 };
+
 #endif // MAINWINDOW_H
