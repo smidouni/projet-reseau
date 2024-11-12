@@ -12,7 +12,7 @@ void OSMImporter::importData(const QString &bbox) {
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    // Connect the finished signal to the handleNetworkReply slot here
+    // Lance handleNetworkReply quand les données sont importées
     connect(&networkManager, &QNetworkAccessManager::finished, this, &OSMImporter::handleNetworkReply);
 
     networkManager.post(request, queryData);
@@ -20,7 +20,7 @@ void OSMImporter::importData(const QString &bbox) {
 
 void OSMImporter::handleNetworkReply(QNetworkReply *reply) {
     if (reply->error() != QNetworkReply::NoError) {
-        qWarning() << "Network error:" << reply->errorString();
+        qWarning() << "Erreur reseau:" << reply->errorString();
         reply->deleteLater();
         emit finished();  // Emit finished signal even on error
         return;
@@ -31,13 +31,13 @@ void OSMImporter::handleNetworkReply(QNetworkReply *reply) {
     parseXml(xml);
 
     if (xml.hasError()) {
-        qWarning() << "XML error during Overpass API import:" << xml.errorString();
+        qWarning() << "Erreur XML durant l'import des données OSM:" << xml.errorString();
     } else {
-        qDebug() << "Import successful with" << graph.nodes.size() << "nodes and" << graph.getEdges().size() << "edges.";
+        qDebug() << "Succès de l'import avec" << graph.nodes.size() << "nodes et" << graph.getEdges().size() << "edges.";
     }
 
     reply->deleteLater();
-    emit finished();  // Emit finished signal after successful processing
+    emit finished();
 }
 
 void OSMImporter::parseXml(QXmlStreamReader &xml) {
@@ -77,6 +77,6 @@ void OSMImporter::parseXml(QXmlStreamReader &xml) {
     }
 
     if (xml.hasError()) {
-        qWarning() << "XML parsing error:" << xml.errorString();
+        qWarning() << "Erreur pendant le parsing du XML:" << xml.errorString();
     }
 }

@@ -84,5 +84,5 @@ QList<Edge*> Graph::findPath(qint64 startId, qint64 endId, const QSet<QPair<qint
             }
         }
     }
-    return {};  // No path found
+    return {};  // Pas de chemin
 }

@@ -22,7 +22,7 @@ private:
     Graph &graph;
     qint64 currentNodeId;
     qint64 destinationNodeId;
-    double speed = 10.0;  // Fixed speed for all vehicles
+    double speed = 10.0;
     double distanceAlongPath;
     QGeoCoordinate currentPosition;
     Path currentPath;

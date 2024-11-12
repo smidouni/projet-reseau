@@ -24,6 +24,7 @@ int Path::getEdgeIndexAtDistance(double distance) const {
     return edges.size() - 1;
 }
 
+// TODO: Refaire de façon a enlever toutes les boucles (enregistrer uniquement le startNode actuel, endNode, distance entre les deux, et interpoler dessus)
 QGeoCoordinate Path::getPositionAtDistance(double distance) const {
     if (edges.isEmpty() || distance >= pathLength) {
         return edges.isEmpty() ? QGeoCoordinate() : edges.last()->end->coordinate;
@@ -41,7 +42,6 @@ QGeoCoordinate Path::getPositionAtDistance(double distance) const {
     return startCoord.atDistanceAndAzimuth(localDistance, azimuth);
 }
 
-// New getter method implementation
 QList<Edge*> Path::getEdges() const {
     return edges;
 }

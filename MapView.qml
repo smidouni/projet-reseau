@@ -14,8 +14,8 @@ Rectangle {
     Map {
         anchors.fill: parent
         plugin: mapPlugin
-        zoomLevel: initialZoomLevel  // Use initial zoom level from C++
-        center: QtPositioning.coordinate(initialCenterLat, initialCenterLon)  // Use initial center from C++
+        zoomLevel: initialZoomLevel
+        center: QtPositioning.coordinate(initialCenterLat, initialCenterLon)
 
         MapItemView {
             id: vehicleView

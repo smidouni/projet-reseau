@@ -15,7 +15,7 @@ public:
     void importData(const QString &bbox);
 
 signals:
-    void finished();  // New signal to indicate import completion
+    void finished();  // Signal qui indique que l'import est termine
 
 public slots:
     void handleNetworkReply(QNetworkReply *reply);

@@ -17,7 +17,8 @@ void SimulationManager::addVehicle(int id, qint64 startNodeId) {
 
 
 void SimulationManager::updateVehicles() {
-    double deltaTime = 0.016 * speedFactor; // Adjust deltaTime based on speed factor
+    //TODO: Revoir la logique de deltaTime
+    double deltaTime = 0.016 * speedFactor;
     for (Vehicle *vehicle : vehicles) {
         vehicle->updatePosition(deltaTime);
     }

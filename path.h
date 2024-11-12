@@ -7,13 +7,12 @@
 
 class Path {
 public:
-    Path(); // Default constructor
+    Path();
     Path(const QList<Edge*> &edges);
 
     double totalLength() const;
     QGeoCoordinate getPositionAtDistance(double distance) const;
 
-    // New getter method to access edges
     QList<Edge*> getEdges() const;
 
 private:

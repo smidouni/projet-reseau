@@ -5,7 +5,7 @@
 #include <QQuickWidget>
 #include <QPushButton>
 #include <QSlider>
-#include "SimulationManager.h"
+#include "simulationmanager.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT

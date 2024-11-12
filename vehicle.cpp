@@ -8,7 +8,6 @@ Vehicle::Vehicle(int id, Graph &graph, qint64 startNodeId)
         return;
     }
 
-    // Ensure we are only setting a destination if nodes are available
     if (graph.nodes.size() > 0) {
         setDestination(graph.nodes.keys().at(QRandomGenerator::global()->bounded(graph.nodes.keys().size())));
     }
@@ -19,7 +18,6 @@ void Vehicle::updatePosition(double deltaTime) {
     distanceAlongPath += travelDistance;
 
     if (distanceAlongPath >= currentPath.totalLength()) {
-        // Only set a new destination if nodes are available in the graph
         if (graph.nodes.size() > 0) {
             setDestination(graph.nodes.keys().at(QRandomGenerator::global()->bounded(graph.nodes.keys().size())));
         }
@@ -48,7 +46,6 @@ void Vehicle::handleObstacleOnEdge() {
 }
 
 void Vehicle::backtrackToPreviousNode() {
-    // Use the new getEdges() method to access the edges
     if (!currentPath.getEdges().isEmpty()) {
         currentNodeId = currentPath.getEdges().first()->start->id;
         recalculatePath();

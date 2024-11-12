@@ -19,7 +19,6 @@ public:
 
     QMap<qint64, Node*> nodes;
 
-    // Public getter for edges to allow controlled access
     const QMap<QPair<qint64, qint64>, Edge*>& getEdges() const { return edges; }
 
 private:
