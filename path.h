@@ -20,15 +20,18 @@ class Path {
 public:
     Path();
     /**
-     * @brief Constructeur prenant une liste d'Edge dans l'ordre exact
-     *        (ceux retournés par Graph::findPath), plus l'ID de départ.
-     *
-     * @param edges         Liste d'arêtes dans l'ordre du chemin
-     * @param startNodeId   Le node ID d'où l'on part (pour déterminer le sens)
+     * @brief Construit un chemin à partir d'une liste d'Edges (dans l'ordre),
+     *        et d'un node de départ pour déterminer le sens des segments.
      */
     Path(const QList<Edge*>& edges, qint64 startNodeId);
 
     double totalLength() const;
+
+    /**
+     * @brief getPositionAtDistance
+     * Calcule la position (latitude/longitude) le long du chemin
+     * en fonction d'une distance parcourue depuis le début du Path.
+     */
     QGeoCoordinate getPositionAtDistance(double distance) const;
 
     /**
@@ -36,6 +39,12 @@ public:
      * Renvoie la liste des Edge* (sans précision de sens).
      */
     QList<Edge*> getEdges() const;
+
+    /**
+     * @brief getFinalNodeId
+     * Renvoie l'ID du dernier nœud (celui où le Path se termine).
+     */
+    qint64 getFinalNodeId() const;
 
 private:
     QList<PathSegment> segments;
