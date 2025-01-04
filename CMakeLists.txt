@@ -37,6 +37,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(projet-reseau
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        communicationmanager.h communicationmanager.cpp
     )
 else()
     if(ANDROID)

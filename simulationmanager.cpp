@@ -19,10 +19,15 @@ void SimulationManager::addVehicle(int id, qint64 startNodeId)
 {
     if (!graph.nodes.isEmpty()) {
         Vehicle *vehicle = new Vehicle(id, graph, startNodeId);
-        vehicles.append(vehicle);
+        if (vehicle && graph.nodes.contains(startNodeId)) {
+            vehicles.append(vehicle);
+        } else {
+            qWarning() << "Erreur lors de la création du véhicule : id=" << id;
+        }
     } else {
-        qWarning() << "Cannot add vehicle, graph has no nodes.";
+        qWarning() << "Graph est vide. Impossible d'ajouter un véhicule.";
     }
+
 }
 
 void SimulationManager::updateVehicles()

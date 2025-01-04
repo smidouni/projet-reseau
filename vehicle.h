@@ -26,6 +26,10 @@ public:
     void setDestination(qint64 destinationNodeId);
     void setRandomDestination();
 
+    double getCommunicationRange() const;
+    void receiveMessage(const QString &message);
+    int getId() const;
+
 signals:
     void positionChanged();
 
@@ -38,6 +42,8 @@ private:
     double distanceAlongPath;
     QGeoCoordinate currentPosition;
     Path currentPath;
+
+    double communicationRange;
 
     void recalculatePath();
     void backtrackToPreviousNode();

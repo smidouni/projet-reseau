@@ -6,6 +6,9 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QRandomGenerator>
+#include <qgraphicsitem.h>
+#include "communicationmanager.h"
+
 
 MainWindow::MainWindow(Graph *graph, double centerLat, double centerLon, int zoomLevel, QWidget *parent)
     : QMainWindow(parent), simManager(new SimulationManager(*graph)), centerLat(centerLat), centerLon(centerLon), zoomLevel(zoomLevel) {
@@ -24,8 +27,25 @@ MainWindow::MainWindow(Graph *graph, double centerLat, double centerLon, int zoo
         simManager->addVehicle(i, startNodeId);
     }
 
+    QList<Vehicle*> vehicleList;
+    for (QObject *obj : simManager->getVehicles()) {
+        Vehicle *vehicle = qobject_cast<Vehicle*>(obj);
+        if (vehicle) {
+            vehicleList.append(vehicle);
+        }
+    }
+
+    commManager = new CommunicationManager(vehicleList, this);
+
+    if (!commManager) {
+        qWarning() << "commManager n'a pas été initialisé correctement.";
+    }
+
     // updateMap est lancée quand simManager emit "updated"
-    connect(simManager, &SimulationManager::updated, this, &MainWindow::updateMap);
+    //connect(simManager, &SimulationManager::updated, this, &MainWindow::updateMap);
+    //connect(commManager, &CommunicationManager::messageSent, this, &MainWindow::handleMessage);
+    //connect(sendButton, &QPushButton::clicked, this, &MainWindow::sendMessage);
+
 }
 
 void MainWindow::setupUI() {
@@ -96,3 +116,85 @@ void MainWindow::setSimulationSpeed(double speedFactor) {
 void MainWindow::updateMap() {
     emit simManager->vehiclesUpdated();
 }
+
+void MainWindow::setupScene() {
+    for (QObject *obj : simManager->getVehicles()) {
+        Vehicle *vehicle = qobject_cast<Vehicle*>(obj); // Conversion explicite
+        if (!vehicle) continue; // Vérifiez que le cast est valide
+        // Couleur aléatoire pour le cercle de portée
+        int red = QRandomGenerator::global()->bounded(256);
+        int green = QRandomGenerator::global()->bounded(256);
+        int blue = QRandomGenerator::global()->bounded(256);
+        QColor randomColor(red, green, blue, 50);
+
+        // Cercle de communication
+        QGraphicsEllipseItem *circle = new QGraphicsEllipseItem(
+            vehicle->lat() - vehicle->getCommunicationRange(),
+            vehicle->lon() - vehicle->getCommunicationRange(),
+            vehicle->getCommunicationRange() * 2,
+            vehicle->getCommunicationRange() * 2
+            );
+        circle->setBrush(QBrush(randomColor));
+        scene->addItem(circle);
+
+        // Rectangle représentant le véhicule
+        QGraphicsRectItem *rect = new QGraphicsRectItem(vehicle->lat() - 5, vehicle->lon() - 5, 10, 10);
+        rect->setBrush(Qt::blue);
+        scene->addItem(rect);
+
+        // Texte pour afficher l'identifiant du véhicule
+        QGraphicsTextItem *text = new QGraphicsTextItem(QString::number(vehicle->getId()));
+        text->setPos(vehicle->lat() + 10, vehicle->lon() - 10);
+        scene->addItem(text);
+    }
+}
+
+void MainWindow::handleMessage(Vehicle *from, Vehicle *to, const QString &message) {
+    if (!from || !to) {
+        qWarning() << "Message reçu avec un pointeur nul.";
+        return;
+    }
+
+    logArea->append(QString("Vehicle %1 → Vehicle %2: %3").arg(from->getId()).arg(to->getId()).arg(message));
+
+    QLineF line(QPointF(from->lon(), from->lat()), QPointF(to->lon(), to->lat()));
+    QGraphicsLineItem *lineItem = scene->addLine(line, QPen(Qt::red, 2));
+    messageLines.append(lineItem);
+}
+
+
+void MainWindow::sendMessage() {
+    // Récupérer le message saisi
+    QString message = messageInput->text().trimmed();
+    if (message.isEmpty()) {
+        logArea->append("Erreur : Aucun message saisi !");
+        return;
+    }
+
+    // Récupérer le véhicule sélectionné
+    int index = vehicleSelector->currentIndex();
+    if (index < 0) {
+        logArea->append("Erreur : Aucun véhicule sélectionné !");
+        return;
+    }
+
+    Vehicle *sender = qobject_cast<Vehicle*>(vehicleSelector->currentData().value<QObject*>());
+    if (!sender) {
+        logArea->append("Erreur : Émetteur invalide !");
+        return;
+    }
+
+    // Envoyer le message via CommunicationManager
+    logArea->append(QString("Envoi : Vehicle %1 → Tous : %2").arg(sender->getId()).arg(message));
+    commManager->sendMessage(sender, message);
+}
+
+
+void MainWindow::clearMessageLines() {
+    for (QGraphicsLineItem *line : messageLines) {
+        scene->removeItem(line);
+        delete line;
+    }
+    messageLines.clear();
+}
+

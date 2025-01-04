@@ -199,3 +199,16 @@ void Vehicle::backtrackToPreviousNode()
         recalculatePath();
     }
 }
+
+double Vehicle::getCommunicationRange() const {
+    return communicationRange;
+}
+
+void Vehicle::receiveMessage(const QString &message) {
+    qDebug() << "Vehicle" << id << "received message:" << message;
+}
+
+int Vehicle::getId() const {
+    return id;
+}
+
