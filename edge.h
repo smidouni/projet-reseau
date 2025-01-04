@@ -1,7 +1,7 @@
 #ifndef EDGE_H
 #define EDGE_H
 
-#include "Node.h"
+#include "node.h"
 
 class Edge {
 public:

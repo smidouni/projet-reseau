@@ -3,26 +3,44 @@
 #include <QDebug>
 
 OSMImporter::OSMImporter(Graph &graph, QObject *parent)
-    : QObject(parent), graph(graph) { }
+    : QObject(parent), graph(graph)
+{
+}
 
-void OSMImporter::importData(const QString &bbox) {
-    QString query = QString("[out:xml];(node(%1);way(%1);relation(%1););out body;").arg(bbox);
+void OSMImporter::importData(const QString &bbox)
+{
+    // Requête Overpass pour ne récupérer que les ways taguées "highway"
+    // dans la bounding box, ainsi que les nodes qui leur sont associés:
+    // On encapsule le tout entre parenthèses pour que Overpass applique '>'
+    // (l'opérateur d'extension aux nœuds) correctement.
+    QString query = QString(
+                        "[out:xml];"
+                        "("
+                        "   way[\"highway\"](%1);"
+                        "   >;"
+                        ");"
+                        "out body;"
+                        ).arg(bbox);
+
     QByteArray queryData = query.toUtf8();
     QUrl url("http://overpass-api.de/api/interpreter");
     QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+    request.setHeader(QNetworkRequest::ContentTypeHeader,
+                      "application/x-www-form-urlencoded");
 
-    // Lance handleNetworkReply quand les données sont importées
-    connect(&networkManager, &QNetworkAccessManager::finished, this, &OSMImporter::handleNetworkReply);
+    // Lance handleNetworkReply quand la requête est terminée
+    connect(&networkManager, &QNetworkAccessManager::finished,
+            this, &OSMImporter::handleNetworkReply);
 
     networkManager.post(request, queryData);
 }
 
-void OSMImporter::handleNetworkReply(QNetworkReply *reply) {
+void OSMImporter::handleNetworkReply(QNetworkReply *reply)
+{
     if (reply->error() != QNetworkReply::NoError) {
-        qWarning() << "Erreur reseau:" << reply->errorString();
+        qWarning() << "Erreur réseau:" << reply->errorString();
         reply->deleteLater();
-        emit finished();  // Emit finished signal even on error
+        emit finished();
         return;
     }
 
@@ -31,16 +49,20 @@ void OSMImporter::handleNetworkReply(QNetworkReply *reply) {
     parseXml(xml);
 
     if (xml.hasError()) {
-        qWarning() << "Erreur XML durant l'import des données OSM:" << xml.errorString();
+        qWarning() << "Erreur XML durant l'import des données OSM:"
+                   << xml.errorString();
     } else {
-        qDebug() << "Succès de l'import avec" << graph.nodes.size() << "nodes et" << graph.getEdges().size() << "edges.";
+        qDebug() << "Succès de l'import avec"
+                 << graph.nodes.size() << "nodes et"
+                 << graph.getEdges().size() << "edges.";
     }
 
     reply->deleteLater();
     emit finished();
 }
 
-void OSMImporter::parseXml(QXmlStreamReader &xml) {
+void OSMImporter::parseXml(QXmlStreamReader &xml)
+{
     QMap<qint64, Node*> parsedNodes;
 
     while (!xml.atEnd() && !xml.hasError()) {
@@ -54,10 +76,16 @@ void OSMImporter::parseXml(QXmlStreamReader &xml) {
                 Node *node = new Node(id, coord);
                 parsedNodes.insert(id, node);
                 graph.addNode(id, coord);
+
             } else if (xml.name() == "way") {
                 QList<Node*> wayNodes;
-                while (!(xml.tokenType() == QXmlStreamReader::EndElement && xml.name() == "way")) {
-                    if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == "nd") {
+
+                while (!(xml.tokenType() == QXmlStreamReader::EndElement
+                         && xml.name() == "way"))
+                {
+                    if (xml.tokenType() == QXmlStreamReader::StartElement
+                        && xml.name() == "nd")
+                    {
                         qint64 ref = xml.attributes().value("ref").toLongLong();
                         if (parsedNodes.contains(ref)) {
                             wayNodes.append(parsedNodes[ref]);
@@ -66,9 +94,11 @@ void OSMImporter::parseXml(QXmlStreamReader &xml) {
                     xml.readNext();
                 }
 
+                // On ajoute des edges bidirectionnels entre chaque paire
+                // de nodes successifs
                 for (int i = 0; i < wayNodes.size() - 1; ++i) {
                     Node *start = wayNodes[i];
-                    Node *end = wayNodes[i + 1];
+                    Node *end   = wayNodes[i + 1];
                     double length = start->coordinate.distanceTo(end->coordinate);
                     graph.addEdge(start->id, end->id, length);
                 }
@@ -77,6 +107,7 @@ void OSMImporter::parseXml(QXmlStreamReader &xml) {
     }
 
     if (xml.hasError()) {
-        qWarning() << "Erreur pendant le parsing du XML:" << xml.errorString();
+        qWarning() << "Erreur pendant le parsing du XML:"
+                   << xml.errorString();
     }
 }

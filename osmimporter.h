@@ -15,15 +15,14 @@ public:
     void importData(const QString &bbox);
 
 signals:
-    void finished();  // Signal qui indique que l'import est termine
+    void finished();  // Signal qui indique que l'import est terminé
 
-public slots:
+private slots:
     void handleNetworkReply(QNetworkReply *reply);
 
 private:
     Graph &graph;
     QNetworkAccessManager networkManager;
-
     void parseXml(QXmlStreamReader &xml);
 };
 

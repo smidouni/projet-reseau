@@ -6,8 +6,8 @@
 #include <QSet>
 #include <QGeoCoordinate>
 #include <QPair>
-#include "Node.h"
-#include "Edge.h"
+#include "node.h"
+#include "edge.h"
 
 class Graph {
 public:
