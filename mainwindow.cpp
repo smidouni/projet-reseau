@@ -5,6 +5,7 @@
 #include <QUrl>
 #include <QPushButton>
 #include <QSlider>
+#include <QLabel>
 #include <QRandomGenerator>
 #include <qgraphicsitem.h>
 #include "communicationmanager.h"
@@ -42,8 +43,8 @@ MainWindow::MainWindow(Graph *graph, double centerLat, double centerLon, int zoo
     }
 
     // updateMap est lancée quand simManager emit "updated"
-    //connect(simManager, &SimulationManager::updated, this, &MainWindow::updateMap);
-    //connect(commManager, &CommunicationManager::messageSent, this, &MainWindow::handleMessage);
+    connect(simManager, &SimulationManager::updated, this, &MainWindow::updateMap);
+    connect(commManager, &CommunicationManager::messageSent, this, &MainWindow::handleMessage);
     //connect(sendButton, &QPushButton::clicked, this, &MainWindow::sendMessage);
 
 }
@@ -107,6 +108,44 @@ void MainWindow::setupControls() {
         QVBoxLayout *mainLayout = static_cast<QVBoxLayout*>(centralWidget()->layout());
         mainLayout->addWidget(controlsWidget);
     }
+
+    messageInput = new QLineEdit(this);
+    messageInput->setPlaceholderText("Entrez le message à envoyer");
+
+    // Menu déroulant pour choisir le véhicule émetteur
+
+    QList<Vehicle*> vehicleList;
+    for (QObject *obj : simManager->getVehicles()) {
+        Vehicle *vehicle = qobject_cast<Vehicle*>(obj);
+        if (vehicle) {
+            vehicleList.append(vehicle);
+        }
+    }
+
+    vehicleSelector = new QComboBox(this);
+    for (Vehicle *vehicle : vehicleList) {
+        vehicleSelector->addItem(QString("Vehicle %1").arg(vehicle->getId()), QVariant::fromValue(vehicle));
+    }
+
+    // Bouton pour envoyer le message
+    sendButton = new QPushButton("Envoyer le message", this);
+    connect(sendButton, &QPushButton::clicked, this, &MainWindow::sendMessage);
+
+    // Ajout des widgets à un layout vertical
+    QVBoxLayout *controlLayout = new QVBoxLayout;
+    controlLayout->addWidget(new QLabel("Message :"));
+    controlLayout->addWidget(messageInput);
+    controlLayout->addWidget(new QLabel("Émetteur :"));
+    controlLayout->addWidget(vehicleSelector);
+    controlLayout->addWidget(sendButton);
+
+    // Ajout du layout dans la fenêtre principale
+    QWidget *controlWidget = new QWidget(this);
+    controlWidget->setLayout(controlLayout);
+
+    // Ajout des contrôles au bas de la fenêtre
+    QVBoxLayout *mainLayout = static_cast<QVBoxLayout*>(centralWidget()->layout());
+    mainLayout->addWidget(controlWidget);
 }
 
 void MainWindow::setSimulationSpeed(double speedFactor) {
