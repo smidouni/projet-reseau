@@ -16,6 +16,9 @@ public:
     explicit SimulationManager(Graph &graph, QObject *parent = nullptr);
     void addVehicle(int id, qint64 startNodeId);
     void setSpeedFactor(double factor);
+    void clearVehicles();
+    Graph& getGraph();
+
     QList<QObject*> getVehicles() const;
 
 signals:
