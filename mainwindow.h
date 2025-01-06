@@ -10,6 +10,7 @@
 #include <QComboBox>
 #include <QSlider>
 #include <QLabel>
+#include <QSpinBox>
 #include "simulationmanager.h"
 #include "communicationmanager.h"
 
@@ -24,7 +25,8 @@ public slots:
     void setSimulationSpeed(double speedFactor);      // Régler la vitesse de la simulation
     void handleMessage(Vehicle *from, Vehicle *to, const QString &message); // Gérer les messages entre véhicules
     void sendMessage();                               // Envoyer un message
-    void clearMessageLines();                         // Effacer les lignes de communication sur la carte
+    void clearMessageLines();        // Effacer les lignes de communication sur la carte
+
 
 private:
     QQuickWidget *mapView;                            // Vue de la carte (QML)
@@ -45,6 +47,12 @@ private:
     void setupMap();                                  // Configurer la carte
     void setupControls();                             // Configurer les contrôles (boutons, sliders)
     void setupScene();                                // Configurer la scène graphique
+
+    QSpinBox *vehicleCountSpinBox;  // Champ pour choisir le nombre de véhicules
+    QPushButton *resetButton;      // Bouton pour relancer la simulation
+
+    void resetSimulation();        // Méthode pour relancer la simulation
+
 };
 
 #endif // MAINWINDOW_H

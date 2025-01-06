@@ -62,3 +62,21 @@ QList<QObject*> SimulationManager::getVehicles() const
     }
     return vehicleObjects;
 }
+
+void SimulationManager::clearVehicles() {
+    qDebug() << "Suppression des véhicules...";
+    for (auto vehicle : vehicles) {
+        if (vehicle) {
+            disconnect(vehicle, nullptr, nullptr, nullptr);  // Déconnecter tous les signaux/slots
+            delete vehicle;  // Supprimer l'objet
+        }
+    }
+    vehicles.clear();  // Nettoyer la liste
+    qDebug() << "Tous les véhicules ont été supprimés.";
+}
+
+
+Graph& SimulationManager::getGraph() {
+    return graph;
+}
+
