@@ -78,6 +78,7 @@ void MainWindow::setupControls() {
 
     // Boutons de vitesse
     QPushButton *slowButton = new QPushButton("0.5x");
+    QPushButton *normalButton = new QPushButton("1.0x");
     QPushButton *mediumButton = new QPushButton("1.5x");
     QPushButton *fastButton = new QPushButton("2.0x");
 
@@ -122,6 +123,13 @@ void MainWindow::setupControls() {
         speedLabel->setText("50%");
     });
 
+    connect(normalButton, &QPushButton::clicked, [=]() { // Gestion de 1.0x
+        currentSpeed = 1.0;
+        if (!isPaused) setSimulationSpeed(currentSpeed);
+        speedSlider->setValue(static_cast<int>(currentSpeed * 100));
+        speedLabel->setText("100%");
+    });
+
     connect(mediumButton, &QPushButton::clicked, [=]() {
         currentSpeed = 1.5;
         if (!isPaused) setSimulationSpeed(currentSpeed);
@@ -152,6 +160,7 @@ void MainWindow::setupControls() {
     QHBoxLayout *controlsLayout = new QHBoxLayout;
     controlsLayout->addWidget(pauseButton);
     controlsLayout->addWidget(slowButton);
+    controlsLayout->addWidget(normalButton);
     controlsLayout->addWidget(mediumButton);
     controlsLayout->addWidget(fastButton);
     controlsLayout->addWidget(speedSlider);
