@@ -179,6 +179,34 @@ void MainWindow::setupScene() {
         text->setPos(vehicle->lat() + 10, vehicle->lon() - 10);
         scene->addItem(text);
     }
+
+    /// partie rajoutée non fonctionnelle
+    // for (QObject *obj : simManager->getVehicles()) {
+    //     Vehicle *vehicle = qobject_cast<Vehicle*>(obj); // Conversion explicite
+    //     if (!vehicle) continue; // Vérifiez que le cast est valide
+    //     // Couleur aléatoire pour le cercle de portée
+    //     int red = QRandomGenerator::global()->bounded(256);
+    //     int green = QRandomGenerator::global()->bounded(256);
+    //     int blue = QRandomGenerator::global()->bounded(256);
+    //     QColor randomColor(red, green, blue, 50);
+    //     // Cercle de communication
+    //     QGraphicsEllipseItem *circle = new QGraphicsEllipseItem(
+    //         vehicle->lat() - vehicle->getCommunicationRange(),
+    //         vehicle->lon() - vehicle->getCommunicationRange(),
+    //         vehicle->getCommunicationRange() * 2,
+    //         vehicle->getCommunicationRange() * 2
+    //         );
+    //     circle->setBrush(QBrush(randomColor));
+    //     scene->addItem(circle);
+    //     // Rectangle représentant le véhicule
+    //     QGraphicsRectItem *rect = new QGraphicsRectItem(vehicle->lat() - 5, vehicle->lon() - 5, 10, 10);
+    //     rect->setBrush(Qt::blue);
+    //     scene->addItem(rect);
+    //     // Texte pour afficher l'identifiant du véhicule
+    //     QGraphicsTextItem *text = new QGraphicsTextItem(QString::number(vehicle->getId()));
+    //     text->setPos(vehicle->lat() + 10, vehicle->lon() - 10);
+    //     scene->addItem(text);
+    // }
 }
 
 void MainWindow::handleMessage(Vehicle *from, Vehicle *to, const QString &message) {
