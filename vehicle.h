@@ -42,12 +42,14 @@ private:
     double distanceAlongPath;
     QGeoCoordinate currentPosition;
     Path currentPath;
-
+    QString colorString;
+    QSet<QPair<qint64, qint64>> blockedEdges;
     double communicationRange;
 
     void recalculatePath();
     void backtrackToPreviousNode();
     bool tryInitValidStartNode();
+    void pickRandomColor();
 
 };
 

@@ -1,83 +1,45 @@
 #include "vehicle.h"
+#include <QtMath>
+#include <QTimer>
+#include <QColor>
 
-static const int MAX_START_RETRIES = 10;
+// Adjust these as you see fit
+static const int MAX_START_RETRIES = 50;
+static const double MIN_SPEED = 50.0;
+static const double MAX_SPEED = 130.0;
 
 Vehicle::Vehicle(int id, Graph &graph, qint64 startNodeId)
     : id(id),
     graph(graph),
     currentNodeId(startNodeId),
     destinationNodeId(-1),
-    speed(100.0),
-    distanceAlongPath(0.0)
+    speed(0.0)
 {
-    if (graph.nodes.isEmpty()) {
-        qWarning() << "Graph is empty, cannot initialize Vehicle properly.";
-        return;
-    }
+    // 1) Random speed
+    speed = QRandomGenerator::global()->bounded(MAX_SPEED - MIN_SPEED) + MIN_SPEED;
 
-    // If startNodeId is not valid in the graph, pick a random one
+    // 2) Random bright color
+    pickRandomColor();
+
+    // 3) If you have a path-loss formula, you could do it here:
+    // rangeMeters = yourFreeSpacePathLossComputation(...);
+
+    // 4) Attempt to pick a valid path
     if (!graph.nodes.contains(currentNodeId)) {
         currentNodeId = graph.nodes.keys().at(
             QRandomGenerator::global()->bounded(graph.nodes.size())
             );
-        qWarning() << "Vehicle" << id << "startNodeId was invalid; picked random node"
-                   << currentNodeId;
     }
-
-    // Attempt to spawn on a valid node (one that can reach at least some other node)
     bool initOK = tryInitValidStartNode();
     if (!initOK) {
-        // If we fail, we keep the node, but we likely won't move
-        // because no path can be found from here.
         currentPosition = graph.nodes[currentNodeId]->coordinate;
         qWarning() << "Vehicle" << id
-                   << ": could not find any valid path from start node after"
-                   << MAX_START_RETRIES << "tries. Vehicle may remain stuck.";
+                   << "couldn’t find valid path from start, may remain stuck.";
     } else {
-        // If success, we already set a random destination in tryInitValidStartNode()
         currentPosition = graph.nodes[currentNodeId]->coordinate;
     }
 
     emit positionChanged();
-}
-
-bool Vehicle::tryInitValidStartNode()
-{
-    // We'll attempt up to MAX_START_RETRIES:
-    for (int attempt = 0; attempt < MAX_START_RETRIES; ++attempt) {
-
-        // 1) Try a random destination from currentNodeId
-        qint64 testDest = currentNodeId;
-        while (testDest == currentNodeId && graph.nodes.size() > 1) {
-            testDest = graph.nodes.keys().at(
-                QRandomGenerator::global()->bounded(graph.nodes.size())
-                );
-        }
-
-        QList<Edge*> pathEdges = graph.findPath(currentNodeId, testDest);
-        if (!pathEdges.isEmpty()) {
-            // We found at least one route from currentNodeId to testDest
-            // => Keep that as our initial valid route
-            currentPath = Path(pathEdges, currentNodeId);
-            distanceAlongPath = 0.0;
-            currentPosition = currentPath.getPositionAtDistance(0.0);
-
-            // We store testDest in destinationNodeId for normal usage
-            destinationNodeId = testDest;
-            return true;
-        }
-
-        // If no path found, pick a new random start node and try again
-        qWarning() << "Vehicle" << id
-                   << "No path found from" << currentNodeId
-                   << "to" << testDest << "(init attempt" << attempt << ")."
-                   << "Choosing a new start node.";
-
-        currentNodeId = graph.nodes.keys().at(
-            QRandomGenerator::global()->bounded(graph.nodes.size())
-            );
-    }
-    return false; // all attempts failed
 }
 
 double Vehicle::lat() const
@@ -92,15 +54,17 @@ double Vehicle::lon() const
 
 void Vehicle::updatePosition(double deltaTime)
 {
-    // If no valid path, do nothing
     if (currentPath.totalLength() < 1e-6) {
         return;
     }
 
-    double travelDistance = speed * deltaTime;
+    // speed is e.g. 80 => if that's km/h, convert to m/s
+    // We'll do a rough conversion: 1 km/h = 1000/3600 = ~0.2777 m/s
+    double speed_m_s = speed * (1000.0/3600.0);
+
+    double travelDistance = speed_m_s * deltaTime;
     distanceAlongPath += travelDistance;
 
-    // Clamp to avoid overshoot
     if (distanceAlongPath > currentPath.totalLength()) {
         distanceAlongPath = currentPath.totalLength();
     }
@@ -109,13 +73,9 @@ void Vehicle::updatePosition(double deltaTime)
         qint64 finalNode = currentPath.getFinalNodeId();
         if (finalNode >= 0) {
             currentNodeId = finalNode;
-        } else {
-            qWarning() << "Vehicle" << id << "finalNode is invalid (-1).";
         }
-
         setRandomDestination();
         distanceAlongPath = 0.0;
-
         currentPosition = currentPath.getPositionAtDistance(0.0);
         emit positionChanged();
         return;
@@ -153,7 +113,6 @@ void Vehicle::setRandomDestination()
             QRandomGenerator::global()->bounded(graph.nodes.size())
             );
     }
-
     setDestination(newDest);
 }
 
@@ -165,11 +124,10 @@ void Vehicle::recalculatePath()
         return;
     }
 
-    QList<Edge*> pathEdges = graph.findPath(currentNodeId, destinationNodeId);
+    // We pass blockedEdges if we want to avoid obstacles
+    QList<Edge*> pathEdges = graph.findPath(currentNodeId, destinationNodeId, blockedEdges);
     if (pathEdges.isEmpty()) {
-        // Reset path if we can't go anywhere
-        qWarning() << "Vehicle" << id << "No path found from"
-                   << currentNodeId << "to" << destinationNodeId;
+        qWarning() << "Vehicle" << id << "No path found from" << currentNodeId << "to" << destinationNodeId;
         currentPath = Path();
         distanceAlongPath = 0.0;
 
@@ -177,17 +135,29 @@ void Vehicle::recalculatePath()
             currentPosition = graph.nodes[currentNodeId]->coordinate;
             emit positionChanged();
         }
-
-        // Optional: pick a new random destination in hopes to get a valid path
         setRandomDestination();
         return;
     }
 
     currentPath = Path(pathEdges, currentNodeId);
     distanceAlongPath = 0.0;
-
     currentPosition = currentPath.getPositionAtDistance(0.0);
     emit positionChanged();
+}
+
+// A private helper to get a random bright color in HSV
+void Vehicle::pickRandomColor()
+{
+    // Hue in [0..359], saturation around 0.7..1.0, value around 0.7..1.0 for brightness
+    double hue = QRandomGenerator::global()->bounded(360.0);
+    double saturation = 0.7 + 0.3 * QRandomGenerator::global()->generateDouble();
+    double value = 0.7 + 0.3 * QRandomGenerator::global()->generateDouble();
+
+    QColor c;
+    c.setHsvF(hue/360.0, saturation, value);
+
+    // Convert to #RRGGBB
+    colorString = c.name(QColor::HexRgb); // e.g. "#FF00FF"
 }
 
 void Vehicle::backtrackToPreviousNode()
@@ -200,15 +170,34 @@ void Vehicle::backtrackToPreviousNode()
     }
 }
 
-double Vehicle::getCommunicationRange() const {
-    return communicationRange;
-}
 
-void Vehicle::receiveMessage(const QString &message) {
-    qDebug() << "Vehicle" << id << "received message:" << message;
-}
 
-int Vehicle::getId() const {
-    return id;
-}
+bool Vehicle::tryInitValidStartNode()
+{
+    for (int attempt = 0; attempt < MAX_START_RETRIES; ++attempt) {
+        qint64 testDest = currentNodeId;
+        while (testDest == currentNodeId && graph.nodes.size() > 1) {
+            testDest = graph.nodes.keys().at(
+                QRandomGenerator::global()->bounded(graph.nodes.size())
+                );
+        }
 
+        QList<Edge*> pathEdges = graph.findPath(currentNodeId, testDest);
+        if (!pathEdges.isEmpty()) {
+            currentPath = Path(pathEdges, currentNodeId);
+            distanceAlongPath = 0.0;
+            currentPosition = currentPath.getPositionAtDistance(0.0);
+            destinationNodeId = testDest;
+            return true;
+        }
+
+        qWarning() << "Vehicle" << id
+                   << "No path from" << currentNodeId << "to" << testDest
+                   << "(attempt" << attempt << ") picking new start node.";
+
+        currentNodeId = graph.nodes.keys().at(
+            QRandomGenerator::global()->bounded(graph.nodes.size())
+            );
+    }
+    return false;
+}

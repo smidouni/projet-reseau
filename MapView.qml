@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtLocation 5.15
 import QtPositioning 5.15
+import QtQuick.Controls 2.15
 
 Rectangle {
     width: 800
@@ -21,17 +22,47 @@ Rectangle {
         zoomLevel: 14
         center: QtPositioning.coordinate(initialCenterLat, initialCenterLon)
 
-        // Affichage des véhicules
         MapItemView {
             id: vehicleView
             model: simManager.vehiclesModel
+
+            delegate: MapQuickItem {
+                // The lat/lon for this vehicle
+                coordinate: QtPositioning.coordinate(modelData.lat, modelData.lon)
+
+                // We'll anchor so (0,0) is at the center of our gradient
+                anchorPoint.x: container.width / 2
+                anchorPoint.y: container.height / 2
+
+                sourceItem: Item {
+                    id: container
+                    width: 512
+                    height: 512
+
+                    // The actual car icon on top
+                    Image {
+                        id: carIcon
+                        anchors.centerIn: parent
+                        source: "qrc:/images/car_icon.svg"
+                        width: 32
+                        height: 32
+                    }
+                }
+            }
+        }
+
+        MapItemView {
+            id: obstacleView
+            model: simManager.obstaclesModel
+
             delegate: MapQuickItem {
                 coordinate: QtPositioning.coordinate(modelData.lat, modelData.lon)
-                anchorPoint.x: image.width / 2
-                anchorPoint.y: image.height / 2
+                anchorPoint.x: obsImg.width / 2
+                anchorPoint.y: obsImg.height / 2
+
                 sourceItem: Image {
-                    id: image
-                    source: "qrc:/images/car_icon.svg"
+                    id: obsImg
+                    source: "qrc:/images/obstacle_icon.svg"
                     width: 32
                     height: 32
                 }

@@ -4,5 +4,6 @@
     </qresource>
     <qresource prefix="/images">
         <file>car_icon.svg</file>
+        <file>obstacle_icon.svg</file>
     </qresource>
 </RCC>

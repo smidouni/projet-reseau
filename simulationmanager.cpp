@@ -1,17 +1,13 @@
 #include "simulationmanager.h"
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QRandomGenerator>
 
 SimulationManager::SimulationManager(Graph &graph, QObject *parent)
     : QObject(parent), graph(graph)
 {
-    // On connecte le timer à la méthode updateVehicles
     connect(&simulationTimer, &QTimer::timeout, this, &SimulationManager::updateVehicles);
-
-    // 15 FPS => intervalle d’environ 66 ms
-    simulationTimer.start(16);
-
-    // On démarre le QElapsedTimer pour calculer le deltaTime
+    simulationTimer.start(16); // ~60 FPS
     elapsedTimer.start();
 }
 
@@ -19,30 +15,41 @@ void SimulationManager::addVehicle(int id, qint64 startNodeId)
 {
     if (!graph.nodes.isEmpty()) {
         Vehicle *vehicle = new Vehicle(id, graph, startNodeId);
-        if (vehicle && graph.nodes.contains(startNodeId)) {
-            vehicles.append(vehicle);
-        } else {
-            qWarning() << "Erreur lors de la création du véhicule : id=" << id;
-        }
+        vehicles.append(vehicle);
     } else {
-        qWarning() << "Graph est vide. Impossible d'ajouter un véhicule.";
+        qWarning() << "Graph is empty; cannot add vehicle" << id;
     }
+}
 
+void SimulationManager::addObstacle(int id, double lat, double lon)
+{
+    Obstacle *obs = new Obstacle(id, lat, lon, this);
+    obstacles.append(obs);
 }
 
 void SimulationManager::updateVehicles()
 {
-    // Temps écoulé en millisecondes depuis le dernier appel
     qint64 elapsedMs = elapsedTimer.elapsed();
-    // On relance le timer pour la prochaine fois
     elapsedTimer.restart();
 
-    // Conversion en secondes avec facteur de vitesse
     double deltaTime = (elapsedMs / 1000.0) * speedFactor;
 
-    // Mise à jour de chaque véhicule
-    for (Vehicle *vehicle : vehicles) {
-        vehicle->updatePosition(deltaTime);
+    // Update each vehicle’s position
+    for (Vehicle *v : vehicles) {
+        v->updatePosition(deltaTime);
+
+        // Check if the vehicle is “close enough” to any obstacle
+        // e.g. < 10m => we consider it “discovered”
+        for (Obstacle *obs : obstacles) {
+            QGeoCoordinate c1(v->lat(), v->lon());
+            QGeoCoordinate c2(obs->lat(), obs->lon());
+            double dist = c1.distanceTo(c2);
+            if (dist < 10.0) { // if within 10m, say it discovered or "hit" the obstacle
+                obs->flash(); // obstacle flashes green
+                // Possibly mark edges blocked near obstacle...
+                // ...
+            }
+        }
     }
 
     emit updated();
@@ -56,11 +63,20 @@ void SimulationManager::setSpeedFactor(double factor)
 
 QList<QObject*> SimulationManager::getVehicles() const
 {
-    QList<QObject*> vehicleObjects;
-    for (auto vehicle : vehicles) {
-        vehicleObjects.append(vehicle);
+    QList<QObject*> list;
+    for (auto v : vehicles) {
+        list.append(v);
     }
-    return vehicleObjects;
+    return list;
+}
+
+QList<QObject*> SimulationManager::getObstacles() const
+{
+    QList<QObject*> list;
+    for (auto o : obstacles) {
+        list.append(o);
+    }
+    return list;
 }
 
 void SimulationManager::clearVehicles() {

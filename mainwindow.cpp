@@ -41,11 +41,6 @@ MainWindow::MainWindow(Graph *graph, double centerLat, double centerLon, int zoo
         }
     }
 
-    commManager = new CommunicationManager(vehicleList, this);
-
-    if (!commManager) {
-        qWarning() << "commManager n'a pas été initialisé correctement.";
-    }
 }
 
 void MainWindow::setupUI() {
@@ -201,58 +196,6 @@ void MainWindow::resetSimulation() {
     } catch (...) {
         qCritical() << "Erreur inconnue pendant le reset.";
     }
-}
-
-
-
-void MainWindow::handleMessage(Vehicle *from, Vehicle *to, const QString &message) {
-    if (!from || !to) {
-        qWarning() << "Message reçu avec un pointeur nul.";
-        return;
-    }
-
-    logArea->append(QString("Vehicle %1 → Vehicle %2: %3")
-                        .arg(from->getId())
-                        .arg(to->getId())
-                        .arg(message));
-
-    QLineF line(QPointF(from->lon(), from->lat()), QPointF(to->lon(), to->lat()));
-    QGraphicsLineItem *lineItem = scene->addLine(line, QPen(Qt::red, 2));
-    messageLines.append(lineItem);
-}
-
-void MainWindow::sendMessage() {
-    QString message = messageInput->text().trimmed();
-    if (message.isEmpty()) {
-        logArea->append("Erreur : Aucun message saisi !");
-        return;
-    }
-
-    int index = vehicleSelector->currentIndex();
-    if (index < 0) {
-        logArea->append("Erreur : Aucun véhicule sélectionné !");
-        return;
-    }
-
-    Vehicle *sender = qobject_cast<Vehicle*>(vehicleSelector->currentData().value<QObject*>());
-    if (!sender) {
-        logArea->append("Erreur : Émetteur invalide !");
-        return;
-    }
-
-    logArea->append(QString("Envoi : Vehicle %1 → Tous : %2")
-                        .arg(sender->getId())
-                        .arg(message));
-    commManager->sendMessage(sender, message);
-}
-
-
-void MainWindow::clearMessageLines() {
-    for (QGraphicsLineItem *line : messageLines) {
-        scene->removeItem(line);
-        delete line;
-    }
-    messageLines.clear();
 }
 
 void MainWindow::updateMap() {
