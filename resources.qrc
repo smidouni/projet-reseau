@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/maCarte">
+        <file>MapView.qml</file>
+    </qresource>
+    <qresource prefix="/images">
+        <file>car_icon.svg</file>
+    </qresource>
+</RCC>
