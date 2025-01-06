@@ -9,7 +9,7 @@ SimulationManager::SimulationManager(Graph &graph, QObject *parent)
     connect(&simulationTimer, &QTimer::timeout, this, &SimulationManager::updateVehicles);
 
     // 15 FPS => intervalle d’environ 66 ms
-    simulationTimer.start(66);
+    simulationTimer.start(16);
 
     // On démarre le QElapsedTimer pour calculer le deltaTime
     elapsedTimer.start();

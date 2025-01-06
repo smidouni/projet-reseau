@@ -21,8 +21,8 @@ MainWindow::MainWindow(Graph *graph, double centerLat, double centerLon, int zoo
     // Ajoute des boutons à l'UI et de leurs events
     setupControls();
 
-    // On genere 40 vehicules
-    for (int i = 0; i < 200; ++i) {
+    // On genere des vehicules
+    for (int i = 0; i < 10; ++i) {
         qint64 startNodeId = graph->nodes.keys().at(QRandomGenerator::global()->bounded(graph->nodes.size()));
         simManager->addVehicle(i, startNodeId);
     }
