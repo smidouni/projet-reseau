@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Triangular sign outline -->
+  <polygon points="32,0 64,64 0,64"
+           style="fill:red;stroke:black;stroke-width:3"/>
+
+  <!-- White exclamation mark -->
+  <rect x="29" y="15" width="6" height="25" style="fill:white"/>
+  <circle cx="32" cy="50" r="3" style="fill:white"/>
+</svg>
