@@ -107,18 +107,19 @@ bool Vehicle::messageReceived() const
     return m_messageReceived;
 }
 
-void Vehicle::setMessageReceived(bool received)
-{
+void Vehicle::setMessageReceived(bool received) {
     if (m_messageReceived != received) {
         m_messageReceived = received;
+        qDebug() << "Vehicle" << id << "messageReceived set to:" << received;
         emit messageReceivedChanged();
 
         if (received) {
-            // Start the timer for 10 second
-            messageTimer.start(1000);
+            // Start a timer to reset the messageReceived state
+            messageTimer.start(10000); // Reset after 1 second
         }
     }
 }
+
 
 
 void Vehicle::setCommunicationRange(double range)
@@ -135,14 +136,17 @@ int Vehicle::getId() const
 }
 
 void Vehicle::updatePosition(double deltaTime) {
+    // Ensure the vehicle has a valid path to follow
     if (currentPath.totalLength() < 1e-6) {
-        return; // No path to follow
+        qWarning() << "Vehicle" << id << "has no valid path. Staying stationary.";
+        return; // Stop moving if there is no path
     }
 
     double speed_m_s = speed * (1000.0 / 3600.0); // Convert speed to m/s
     double travelDistance = speed_m_s * deltaTime;
     distanceAlongPath += travelDistance;
 
+    // Check for blocked edges and update position
     const QList<Edge*> &pathEdges = currentPath.getEdges();
     double cumulativeLength = 0.0;
 
@@ -157,12 +161,13 @@ void Vehicle::updatePosition(double deltaTime) {
             distanceAlongPath = cumulativeLength - edge->length;
             currentNodeId = edge->start->id;
 
-            // Report the obstacle and immediately recalculate path
+            // Report the obstacle and attempt to recalculate the path
             reportObstacle(qMakePair(edge->start->id, edge->end->id), dynamic_cast<SimulationManager*>(parent()));
-            recalculatePath(); // Ensure the vehicle finds a new route
+            if (!recalculatePath()) {
+                qWarning() << "Vehicle" << id << "could not find a new path. Staying stationary.";
+            }
             return;
         }
-
     }
 
     // If the vehicle reaches the end of its path, set a new destination
@@ -183,41 +188,48 @@ void Vehicle::updatePosition(double deltaTime) {
     currentPosition = currentPath.getPositionAtDistance(distanceAlongPath);
     emit positionChanged();
 }
-
 void Vehicle::setDestination(qint64 destinationNodeId)
 {
     this->destinationNodeId = destinationNodeId;
     recalculatePath();
 }
 
-void Vehicle::setRandomDestination()
-{
+void Vehicle::setRandomDestination() {
     if (graph.nodes.size() <= 1) {
-        qWarning() << "Vehicle" << id << "Not enough nodes to pick a random destination.";
+        qWarning() << "Vehicle" << id << "Not enough nodes to pick a random destination. Staying stationary.";
         return;
     }
 
     qint64 newDest = currentNodeId;
-    while (newDest == currentNodeId && graph.nodes.size() > 1) {
-        newDest = graph.nodes.keys().at(
-            QRandomGenerator::global()->bounded(graph.nodes.size())
-            );
+    int maxAttempts = 50;
+    int attempt = 0;
+
+    // Retry finding a valid destination
+    while (attempt < maxAttempts && newDest == currentNodeId) {
+        newDest = graph.nodes.keys().at(QRandomGenerator::global()->bounded(graph.nodes.size()));
+        attempt++;
     }
+
+    if (newDest == currentNodeId) {
+        qWarning() << "Vehicle" << id << "could not pick a valid random destination after" << attempt << "attempts.";
+        return;
+    }
+
     setDestination(newDest);
 }
 
-void Vehicle::recalculatePath() {
+
+
+bool Vehicle::recalculatePath() {
     if (!graph.nodes.contains(currentNodeId)) {
-        qWarning() << "Vehicle" << id << "recalculatePath: currentNodeId"
-                   << currentNodeId << "not in graph!";
-        return;
+        qWarning() << "Vehicle" << id << "recalculatePath: currentNodeId" << currentNodeId << "not in graph!";
+        return false;
     }
 
     QList<Edge*> pathEdges = graph.findPath(currentNodeId, destinationNodeId, knownBlockedEdges);
 
     if (pathEdges.isEmpty()) {
-        qWarning() << "Vehicle" << id << "No path found from" << currentNodeId
-                   << "to" << destinationNodeId;
+        qWarning() << "Vehicle" << id << "No path found from" << currentNodeId << "to" << destinationNodeId;
 
         // Attempt to set a new random destination
         setRandomDestination();
@@ -225,9 +237,9 @@ void Vehicle::recalculatePath() {
         // If still no valid path, remain stationary
         pathEdges = graph.findPath(currentNodeId, destinationNodeId, knownBlockedEdges);
         if (pathEdges.isEmpty()) {
-            qWarning() << "Vehicle" << id << "still has no valid path. Staying at current position.";
+            qWarning() << "Vehicle" << id << "still has no valid path. Staying stationary.";
             currentPath = Path(); // Clear the path
-            return;
+            return false;
         }
     }
 
@@ -235,7 +247,9 @@ void Vehicle::recalculatePath() {
     distanceAlongPath = 0.0;
     currentPosition = currentPath.getPositionAtDistance(0.0);
     emit positionChanged();
+    return true;
 }
+
 
 void Vehicle::backtrackToPreviousNode()
 {
@@ -324,10 +338,8 @@ void Vehicle::receiveObstacle(const QPair<qint64, qint64> &blockedEdge) {
 
 
 void Vehicle::reportObstacle(const QPair<qint64, qint64> &blockedEdge, SimulationManager* simulationManager) {
-    // Avoid reporting the same blocked edge multiple times
     if (knownBlockedEdges.contains(blockedEdge)) {
-        qDebug() << "Vehicle" << id << "already reported this blocked edge. Skipping.";
-        return;
+        return; // Avoid redundant reporting
     }
 
     qDebug() << "Vehicle" << id << "reporting blocked edge:" << blockedEdge;
@@ -339,6 +351,7 @@ void Vehicle::reportObstacle(const QPair<qint64, qint64> &blockedEdge, Simulatio
     knownBlockedEdges.insert(blockedEdge);
     knownBlockedEdges.insert(qMakePair(blockedEdge.second, blockedEdge.first)); // Reverse direction
 }
+
 
 
 bool Vehicle::currentPathHasEdge(const QPair<qint64, qint64> &edge) const

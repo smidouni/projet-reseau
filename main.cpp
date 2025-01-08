@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
     // Place random obstacles
     SimulationManager* simManager = w.findChild<SimulationManager*>();
     if(simManager){
-        simManager->placeRandomObstacles(75); // Now handled by SimulationManager
+        simManager->placeRandomObstacles(30); // Now handled by SimulationManager
         qDebug() << "Random obstacles placed.";
     } else {
         qWarning() << "SimulationManager not found!";

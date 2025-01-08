@@ -75,7 +75,7 @@ private:
     bool recalculatePathAtNextNode;
     QSet<QPair<qint64, qint64>> knownBlockedEdges;
 
-    void recalculatePath();
+    bool recalculatePath(); // Update the function signature to match the definition
     void backtrackToPreviousNode();
     bool tryInitValidStartNode();
     void pickRandomColor(double frequency);

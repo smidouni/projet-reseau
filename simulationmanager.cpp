@@ -118,8 +118,7 @@ Graph& SimulationManager::getGraph()
     return graph;
 }
 
-QList<Vehicle*> SimulationManager::findConnectedVehicles(Vehicle* startVehicle)
-{
+QList<Vehicle*> SimulationManager::findConnectedVehicles(Vehicle* startVehicle) {
     QList<Vehicle*> connected;
     if (!startVehicle) return connected;
 
@@ -151,34 +150,36 @@ QList<Vehicle*> SimulationManager::findConnectedVehicles(Vehicle* startVehicle)
     return connected;
 }
 
-void SimulationManager::handleObstacle(Vehicle *reportingVehicle, const QPair<qint64, qint64> &blockedEdge) {
+
+void SimulationManager::handleObstacle(Vehicle* reportingVehicle, const QPair<qint64, qint64>& blockedEdge) {
+    // Find vehicles that are within the communication range of the reporting vehicle
     QList<Vehicle*> connectedVehicles = findConnectedVehicles(reportingVehicle);
 
     QList<CommunicationLink> newLinks;
-    for (Vehicle *v : connectedVehicles) {
+    for (Vehicle* v : connectedVehicles) {
         if (v != reportingVehicle) {
+            // Only add links for vehicles receiving the message
             newLinks.append({reportingVehicle->getCurrentPosition(), v->getCurrentPosition()});
+            v->receiveObstacle(blockedEdge); // Notify the vehicle about the obstacle
         }
     }
 
-    // Update communication links in the model
+    // Update communication links for this obstacle report
     m_communicationLinksModel->setCommunicationLinks(newLinks);
     emit communicationLinksChanged();
 
-    // Clear communication links after 1 seconds
+    // Clear communication links after a short period to simulate a transient network
     QTimer::singleShot(1000, [this]() {
         m_communicationLinksModel->setCommunicationLinks({});
         emit communicationLinksChanged();
     });
 
-    // Notify all connected vehicles
-    for (Vehicle *v : connectedVehicles) {
-        v->receiveObstacle(blockedEdge);
-
-        // Turn the vehicle green for 1 seconds
-        v->setMessageReceived(true);
-    }
+    // Set messageReceived for the reporting vehicle
+    reportingVehicle->setMessageReceived(true);
 }
+
+
+
 
 void SimulationManager::blockRandomEdge() {
     QList<QPair<qint64, qint64>> availableEdges;

@@ -31,7 +31,7 @@ MainWindow::MainWindow(Graph *graph, double centerLat, double centerLon, int zoo
     setupControls();
 
     // Generate initial vehicles
-    for (int i = 0; i < 15; ++i) {
+    for (int i = 0; i < 40; ++i) {
         if (graph->nodes.isEmpty()) {
             qWarning() << "Graph is empty; cannot add vehicle" << i;
             continue;
@@ -97,7 +97,7 @@ void MainWindow::setupControls() {
     QLabel *vehicleCountLabel = new QLabel("Nombre de voitures :", this);
     vehicleCountSpinBox = new QSpinBox(this);
     vehicleCountSpinBox->setRange(1, 100); // 1 to 100 vehicles
-    vehicleCountSpinBox->setValue(15);      // Default value
+    vehicleCountSpinBox->setValue(40);      // Default value
 
     // Reset Button
     resetButton = new QPushButton("Relancer la simulation", this);
