@@ -12,7 +12,6 @@
 #include <QLabel>
 #include <QSpinBox>
 #include "simulationmanager.h"
-#include "communicationmanager.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -37,7 +36,6 @@ private:
     int zoomLevel;                                    // Niveau de zoom de la carte
 
     QGraphicsScene *scene;                            // Scène graphique pour les véhicules
-    QList<QGraphicsLineItem*> messageLines;           // Lignes pour représenter les communications
     QTextEdit *logArea;                               // Zone de logs pour afficher les messages
     QLineEdit *messageInput;                          // Champ de saisie pour envoyer des messages
     QComboBox *vehicleSelector;                       // Menu déroulant pour sélectionner les véhicules
@@ -49,7 +47,10 @@ private:
     void setupScene();                                // Configurer la scène graphique
 
     QSpinBox *vehicleCountSpinBox;  // Champ pour choisir le nombre de véhicules
-    QPushButton *resetButton;      // Bouton pour relancer la simulation
+    QPushButton *resetButton;        // Bouton pour relancer la simulation
+
+    bool isPaused;                   // Indicates if the simulation is paused
+    double currentSpeed;             // Current simulation speed factor
 
     void resetSimulation();        // Méthode pour relancer la simulation
 

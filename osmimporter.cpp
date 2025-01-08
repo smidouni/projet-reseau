@@ -9,10 +9,7 @@ OSMImporter::OSMImporter(Graph &graph, QObject *parent)
 
 void OSMImporter::importData(const QString &bbox)
 {
-    // Requête Overpass pour ne récupérer que les ways taguées "highway"
-    // dans la bounding box, ainsi que les nodes qui leur sont associés:
-    // On encapsule le tout entre parenthèses pour que Overpass applique '>'
-    // (l'opérateur d'extension aux nœuds) correctement.
+    // Overpass API query to retrieve only "highway" tagged ways within the bounding box
     QString query = QString(
                         "[out:xml];"
                         "("
@@ -28,7 +25,7 @@ void OSMImporter::importData(const QString &bbox)
     request.setHeader(QNetworkRequest::ContentTypeHeader,
                       "application/x-www-form-urlencoded");
 
-    // Lance handleNetworkReply quand la requête est terminée
+    // Connect the network reply to the handler
     connect(&networkManager, &QNetworkAccessManager::finished,
             this, &OSMImporter::handleNetworkReply);
 
@@ -94,11 +91,17 @@ void OSMImporter::parseXml(QXmlStreamReader &xml)
                     xml.readNext();
                 }
 
-                // On ajoute des edges bidirectionnels entre chaque paire
-                // de nodes successifs
+                // Add bidirectional edges between successive node pairs
                 for (int i = 0; i < wayNodes.size() - 1; ++i) {
                     Node *start = wayNodes[i];
                     Node *end   = wayNodes[i + 1];
+
+                    // **Skip adding edge if start and end nodes are the same**
+                    if (start->id == end->id) {
+                        qDebug() << "Skipping duplicate edge between node" << start->id;
+                        continue;
+                    }
+
                     double length = start->coordinate.distanceTo(end->coordinate);
                     graph.addEdge(start->id, end->id, length);
                 }

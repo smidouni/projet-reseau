@@ -1,8 +1,9 @@
-import QtQuick 2.15
+// MapView.qml
+import QtQuick
 import QtQuick.Controls 2.15
 import QtLocation 5.15
 import QtPositioning 5.15
-import QtQuick.Controls 2.15
+import QtQuick.Shapes 1.8
 
 Rectangle {
     width: 800
@@ -14,7 +15,7 @@ Rectangle {
         name: "osm"
     }
 
-    // Carte principale
+    // Map widget
     Map {
         id: map
         anchors.fill: parent
@@ -27,23 +28,39 @@ Rectangle {
             model: simManager.vehiclesModel
 
             delegate: MapQuickItem {
-                // The lat/lon for this vehicle
                 coordinate: QtPositioning.coordinate(modelData.lat, modelData.lon)
-
-                // We'll anchor so (0,0) is at the center of our gradient
-                anchorPoint.x: container.width / 2
-                anchorPoint.y: container.height / 2
+                anchorPoint.x: communicationCircle.width / 2
+                anchorPoint.y: communicationCircle.height / 2
 
                 sourceItem: Item {
                     id: container
-                    width: 512
-                    height: 512
+                    width: communicationCircle.width
+                    height: communicationCircle.height
 
-                    // The actual car icon on top
+                    // Communication range circle
+                    Rectangle {
+                        id: communicationCircle
+                        anchors.centerIn: parent
+                        width: modelData.communicationRange / mapMetersPerPixel(map.zoomLevel) * 2
+                        height: width
+                        radius: width / 2
+                        visible: true
+                        opacity: 0.03
+                        gradient: RadialGradient {
+                            centerX: 0.5
+                            centerY: 0.5
+                            centerRadius: 0.5 // Radius relative to the rectangle size
+                            stops: [
+                                GradientStop { position: 0.0; color: modelData.color; },
+                                GradientStop { position: 1.0; color: "transparent"; }
+                            ]
+                        }
+                    }
+
                     Image {
                         id: carIcon
                         anchors.centerIn: parent
-                        source: "qrc:/images/car_icon.svg"
+                        source: modelData.messageReceived ? "qrc:/images/car_green.svg" : "qrc:/images/car_icon.svg"
                         width: 32
                         height: 32
                     }
@@ -52,29 +69,45 @@ Rectangle {
         }
 
         MapItemView {
-            id: obstacleView
-            model: simManager.obstaclesModel
+            id: communicationLinksView
+            model: simManager.communicationLinksModel
 
-            delegate: MapQuickItem {
-                coordinate: QtPositioning.coordinate(modelData.lat, modelData.lon)
-                anchorPoint.x: obsImg.width / 2
-                anchorPoint.y: obsImg.height / 2
+            delegate: MapPolyline {
+                line.color: "green"
+                line.width: 2
+                path: [
+                    QtPositioning.coordinate(startLat, startLon),
+                    QtPositioning.coordinate(endLat, endLon)
+                ]
+            }
+        }
 
-                sourceItem: Image {
-                    id: obsImg
-                    source: "qrc:/images/obstacle_icon.svg"
-                    width: 32
-                    height: 32
+        // Render Blocked Edges as Red Lines using BlockedEdgesModel
+        MapItemView {
+            anchors.fill: parent
+            model: blockedEdgesModel
+
+            delegate: MapPolyline {
+                //line.color: flashing ? "green" : "red"
+                line.color: "red"
+                line.width: 3
+                path: [
+                    QtPositioning.coordinate(startLat, startLon),
+                    QtPositioning.coordinate(endLat, endLon)
+                ]
+
+                Component.onCompleted: {
+                    console.log("ListView MapPolyline created with path:", path);
                 }
             }
         }
 
-        // Zone pour les interactions (zoom et déplacement)
+        // Interaction zone for zooming and dragging
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-            // Déplacement de la carte par clic et glisser
+            // Drag to move the map
             property var lastMousePosition
             onPressed: lastMousePosition = Qt.point(mouse.x, mouse.y)
             onPositionChanged: {
@@ -83,16 +116,16 @@ Rectangle {
                     var dy = lastMousePosition.y - mouse.y
                     lastMousePosition = Qt.point(mouse.x, mouse.y)
 
-                    var metersPerPixel = 156543.03392 * Math.cos(map.center.latitude * Math.PI / 180) / Math.pow(2, map.zoomLevel)
+                    var metersPerPixel = mapMetersPerPixel(map.zoomLevel)
                     var newCenter = QtPositioning.coordinate(
-                        map.center.latitude + (dy * metersPerPixel / 111320),
-                        map.center.longitude - (dx * metersPerPixel / (111320 * Math.cos(map.center.latitude * Math.PI / 180)))
+                        map.center.latitude - (dy * metersPerPixel / 111320),
+                        map.center.longitude + (dx * metersPerPixel / (111320 * Math.cos(map.center.latitude * Math.PI / 180)))
                     )
                     map.center = newCenter
                 }
             }
 
-            // Zoom avec la molette
+            // Zoom with the mouse wheel
             onWheel: {
                 if (wheel.angleDelta.y > 0 && map.zoomLevel < 20) {
                     map.zoomLevel += 0.5
@@ -102,7 +135,7 @@ Rectangle {
             }
         }
 
-        // Boutons pour zoomer
+        // Zoom buttons
         Column {
             anchors {
                 right: parent.right
@@ -129,5 +162,11 @@ Rectangle {
             }
         }
     }
-}
 
+    // Utility function to calculate meters per pixel
+    function mapMetersPerPixel(zoomLevel) {
+        const earthCircumferenceMeters = 40075016.686;
+        const tileSizePixels = 256;
+        return earthCircumferenceMeters / (tileSizePixels * Math.pow(2, zoomLevel));
+    }
+}

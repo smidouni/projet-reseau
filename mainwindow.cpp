@@ -1,3 +1,5 @@
+// mainwindow.cpp
+
 #include "mainwindow.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -8,150 +10,161 @@
 #include <QRandomGenerator>
 #include <QLabel>
 #include <QSpinBox>
-#include <qgraphicsitem.h>
-#include "communicationmanager.h"
-
-// Variables globales pour la vitesse et l'état de pause
-double currentSpeed = 1.0; // Vitesse par défaut : 1.0x
-bool isPaused = false;     // Indique si la simulation est en pause
+#include <QDebug>
 
 MainWindow::MainWindow(Graph *graph, double centerLat, double centerLon, int zoomLevel, QWidget *parent)
-    : QMainWindow(parent), simManager(new SimulationManager(*graph)), centerLat(centerLat), centerLon(centerLon), zoomLevel(zoomLevel) {
-    // Mise en place de l'UI
+    : QMainWindow(parent),
+    simManager(new SimulationManager(*graph, this)),
+    centerLat(centerLat),
+    centerLon(centerLon),
+    zoomLevel(zoomLevel),
+    isPaused(false),
+    currentSpeed(1.0)
+{
+    // Setup UI
     setupUI();
 
-    // Mise en place de la carte
+    // Setup Map
     setupMap();
 
-    // Ajoute des boutons à l'UI et leurs événements
+    // Setup Controls
     setupControls();
 
-    // Génère 3 véhicules au départ
-    for (int i = 0; i < 3; ++i) {
+    // Generate initial vehicles
+    for (int i = 0; i < 15; ++i) {
+        if (graph->nodes.isEmpty()) {
+            qWarning() << "Graph is empty; cannot add vehicle" << i;
+            continue;
+        }
         qint64 startNodeId = graph->nodes.keys().at(QRandomGenerator::global()->bounded(graph->nodes.size()));
         simManager->addVehicle(i, startNodeId);
     }
 
-    // Vérifie l'initialisation du CommunicationManager
-    QList<Vehicle*> vehicleList;
-    for (QObject *obj : simManager->getVehicles()) {
-        Vehicle *vehicle = qobject_cast<Vehicle*>(obj);
-        if (vehicle) {
-            vehicleList.append(vehicle);
-        }
-    }
-
+    // Connect blockedEdgesChanged signal to update the model in QML
+    connect(simManager, &SimulationManager::blockedEdgesChanged, this, [this]() {
+        // The BlockedEdgesModel is already updated within SimulationManager
+        // and QML is bound to it, so no additional action is needed here.
+    });
 }
 
 void MainWindow::setupUI() {
     QWidget *centralWidget = new QWidget(this);
     setCentralWidget(centralWidget);
 
-    // Initialisation de la carte
+    // Initialize UI Layout
+    QVBoxLayout *mainLayout = new QVBoxLayout;
+    centralWidget->setLayout(mainLayout);
+
+    // Initialize Map View
     mapView = new QQuickWidget;
     mapView->setResizeMode(QQuickWidget::SizeRootObjectToView);
     mapView->setMinimumSize(800, 600);
 
-    QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addWidget(mapView);
-    centralWidget->setLayout(mainLayout);
 }
 
 void MainWindow::setupMap() {
     QQmlContext *context = mapView->rootContext();
     context->setContextProperty("simManager", simManager);
+    context->setContextProperty("blockedEdgesModel", simManager->blockedEdgesModel());
     context->setContextProperty("initialCenterLat", centerLat);
     context->setContextProperty("initialCenterLon", centerLon);
     context->setContextProperty("initialZoomLevel", zoomLevel);
+    context->setContextProperty("communicationLinks", simManager->getCommunicationLinks());
 
     mapView->setSource(QUrl(QStringLiteral("qrc:/maCarte/MapView.qml")));
 }
 
+
 void MainWindow::setupControls() {
-    // Bouton Pause
+    // Pause Button
     QPushButton *pauseButton = new QPushButton("Pause");
 
-    // Boutons de vitesse
+    // Speed Buttons
     QPushButton *slowButton = new QPushButton("0.5x");
     QPushButton *normalButton = new QPushButton("1.0x");
     QPushButton *mediumButton = new QPushButton("1.5x");
     QPushButton *fastButton = new QPushButton("2.0x");
 
-    // Slider pour ajuster la vitesse
+    // Speed Slider
     QSlider *speedSlider = new QSlider(Qt::Horizontal);
     QLabel *speedLabel = new QLabel("100%", this);
 
-    speedSlider->setRange(5, 200); // Plage de 5% à 200%
-    speedSlider->setValue(100);    // Valeur initiale : 100%
+    speedSlider->setRange(5, 10000); // Adjusted range for 0.05x to 100.0x
+    speedSlider->setValue(100);    // Default 100%
 
-    // SpinBox pour choisir le nombre de véhicules
+    // Vehicle Count SpinBox
     QLabel *vehicleCountLabel = new QLabel("Nombre de voitures :", this);
     vehicleCountSpinBox = new QSpinBox(this);
-    vehicleCountSpinBox->setRange(1, 100); // Plage entre 1 et 100 véhicules
-    vehicleCountSpinBox->setValue(3);      // Valeur par défaut
+    vehicleCountSpinBox->setRange(1, 100); // 1 to 100 vehicles
+    vehicleCountSpinBox->setValue(15);      // Default value
 
-    // Bouton pour relancer la simulation
+    // Reset Button
     resetButton = new QPushButton("Relancer la simulation", this);
 
-    // Connexion pour le bouton Reset
+    // **Removed Block Edge Button**
+
+    // Connect Reset Button
     connect(resetButton, &QPushButton::clicked, this, &MainWindow::resetSimulation);
 
-    // Connexion du bouton Pause
-    connect(pauseButton, &QPushButton::clicked, [=]() {
-        isPaused = !isPaused; // Inverse l'état de pause
+    // Connect Pause Button
+    connect(pauseButton, &QPushButton::clicked, this, [this, speedSlider, pauseButton]() {
+        isPaused = !isPaused; // Toggle pause state
 
         if (isPaused) {
-            currentSpeed = speedSlider->value() / 100.0;
-            setSimulationSpeed(0); // Mettre la simulation en pause
+            currentSpeed = speedSlider->value(); // Current speed is saved
+            setSimulationSpeed(0); // Pause simulation
             pauseButton->setText("Play");
         } else {
-            setSimulationSpeed(currentSpeed);
+            setSimulationSpeed(currentSpeed / 100.0);
             pauseButton->setText("Pause");
         }
     });
 
-    // Connexions des boutons de vitesse
-    connect(slowButton, &QPushButton::clicked, [=]() {
-        currentSpeed = 0.5;
-        if (!isPaused) setSimulationSpeed(currentSpeed);
-        speedSlider->setValue(static_cast<int>(currentSpeed * 100));
+    // Connect Speed Buttons
+    connect(slowButton, &QPushButton::clicked, this, [this, speedSlider, speedLabel]() {
+        currentSpeed = 50; // 50%
+        if (!isPaused) setSimulationSpeed(currentSpeed / 100.0);
+        speedSlider->setValue(static_cast<int>(currentSpeed));
         speedLabel->setText("50%");
     });
 
-    connect(normalButton, &QPushButton::clicked, [=]() { // Gestion de 1.0x
-        currentSpeed = 1.0;
-        if (!isPaused) setSimulationSpeed(currentSpeed);
-        speedSlider->setValue(static_cast<int>(currentSpeed * 100));
+    connect(normalButton, &QPushButton::clicked, this, [this, speedSlider, speedLabel]() { // 1.0x
+        currentSpeed = 100; // 100%
+        if (!isPaused) setSimulationSpeed(currentSpeed / 100.0);
+        speedSlider->setValue(static_cast<int>(currentSpeed));
         speedLabel->setText("100%");
     });
 
-    connect(mediumButton, &QPushButton::clicked, [=]() {
-        currentSpeed = 1.5;
-        if (!isPaused) setSimulationSpeed(currentSpeed);
-        speedSlider->setValue(static_cast<int>(currentSpeed * 100));
+    connect(mediumButton, &QPushButton::clicked, this, [this, speedSlider, speedLabel]() {
+        currentSpeed = 150; // 150%
+        if (!isPaused) setSimulationSpeed(currentSpeed / 100.0);
+        speedSlider->setValue(static_cast<int>(currentSpeed));
         speedLabel->setText("150%");
     });
 
-    connect(fastButton, &QPushButton::clicked, [=]() {
-        currentSpeed = 2.0;
-        if (!isPaused) setSimulationSpeed(currentSpeed);
-        speedSlider->setValue(static_cast<int>(currentSpeed * 100));
+    connect(fastButton, &QPushButton::clicked, this, [this, speedSlider, speedLabel]() {
+        currentSpeed = 200; // 200%
+        if (!isPaused) setSimulationSpeed(currentSpeed / 100.0);
+        speedSlider->setValue(static_cast<int>(currentSpeed));
         speedLabel->setText("200%");
     });
 
-    // Connexion du slider
-    connect(speedSlider, &QSlider::valueChanged, this, [=](int value) {
+    // Connect Speed Slider
+    connect(speedSlider, &QSlider::valueChanged, this, [this, speedLabel](int value) {
         if (!isPaused) {
-            double speed = value / 100.0;
-            setSimulationSpeed(speed);
-            currentSpeed = speed; // Sauvegarder la vitesse actuelle
+            double speedFactor = value / 100.0;
+            setSimulationSpeed(speedFactor);
+            currentSpeed = value; // Save current speed
         } else {
-            currentSpeed = value / 100.0;
+            currentSpeed = value; // Update speed factor for when unpausing
         }
         speedLabel->setText(QString::number(value) + "%");
     });
 
-    // Disposition des contrôles
+    // **Removed Block Edge Button Connection**
+
+    // Arrange Controls Layout
     QHBoxLayout *controlsLayout = new QHBoxLayout;
     controlsLayout->addWidget(pauseButton);
     controlsLayout->addWidget(slowButton);
@@ -163,6 +176,7 @@ void MainWindow::setupControls() {
     controlsLayout->addWidget(vehicleCountLabel);
     controlsLayout->addWidget(vehicleCountSpinBox);
     controlsLayout->addWidget(resetButton);
+    // **Removed controlsLayout->addWidget(blockEdgeButton);**
 
     QWidget *controlsWidget = new QWidget;
     controlsWidget->setLayout(controlsLayout);
@@ -181,18 +195,22 @@ void MainWindow::resetSimulation() {
     try {
         qDebug() << "Début de la réinitialisation de la simulation...";
 
-        // Vérification du graphe
+        // Verify graph
         if (simManager->getGraph().nodes.isEmpty()) {
             qCritical() << "Le graphe est vide. Impossible de relancer la simulation.";
             return;
         }
 
-        // Suppression des véhicules existants
+        // Clear existing vehicles
         simManager->clearVehicles();
 
-        // Ajout de nouveaux véhicules
+        // Add new vehicles
         int numVehicles = vehicleCountSpinBox->value();
         for (int i = 0; i < numVehicles; ++i) {
+            if (simManager->getGraph().nodes.isEmpty()) {
+                qWarning() << "Graph is empty; cannot add vehicle" << i;
+                continue;
+            }
             qint64 startNodeId = simManager->getGraph().nodes.keys().at(
                 QRandomGenerator::global()->bounded(simManager->getGraph().nodes.size()));
             simManager->addVehicle(i, startNodeId);
@@ -209,5 +227,5 @@ void MainWindow::resetSimulation() {
 
 void MainWindow::updateMap() {
     qDebug() << "Mise à jour de la carte...";
-    emit simManager->vehiclesUpdated(); // Assurez-vous que cette méthode est valide
+    emit simManager->vehiclesUpdated();
 }

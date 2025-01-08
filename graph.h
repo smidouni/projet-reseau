@@ -1,3 +1,4 @@
+// graph.h
 #ifndef GRAPH_H
 #define GRAPH_H
 
@@ -33,9 +34,18 @@ public:
 
     const QMap<QPair<qint64, qint64>, Edge*>& getEdges() const { return edges; }
 
+    // New Methods for Obstacles
+    QList<QPair<qint64, qint64>> getBlockedEdges() const; // Declaration only
+    void placeRandomObstacles(int count);
+    void blockEdge(qint64 startId, qint64 endId);
+    void unblockEdge(qint64 startId, qint64 endId);
+
 private:
     QMap<QPair<qint64, qint64>, Edge*> edges;
     QMap<qint64, QList<Edge*>> adjacencyList;
+
+    // Set to store blocked edges as pairs of node IDs
+    QSet<QPair<qint64, qint64>> blockedEdges;
 
     double heuristic(const Node &a, const Node &b) const;
 

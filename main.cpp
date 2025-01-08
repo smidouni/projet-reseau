@@ -1,5 +1,7 @@
+// main.cpp
 #include "mainwindow.h"
 #include "osmimporter.h"
+#include "simulationmanager.h"
 #include <QApplication>
 #include <QEventLoop>
 #include <QTimer>
@@ -32,7 +34,7 @@ int main(int argc, char *argv[]) {
         loop.quit();
     });
 
-    QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+    QTimer::singleShot(30000, &loop, &QEventLoop::quit); // Adjust timeout as needed
     loop.exec();
 
     if (!importSuccessful || fullGraph.nodes.isEmpty() || fullGraph.getEdges().isEmpty()) {
@@ -40,13 +42,23 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    // Build simplified graph if you want to speed up pathfinding
+    // After building the simplified graph
     Graph simplifiedGraph = fullGraph.createSimplifiedGraph();
     qDebug() << "Simplified graph: " << simplifiedGraph.nodes.size()
              << "nodes," << simplifiedGraph.getEdges().size() << "edges.";
 
+    // Initialize MainWindow with the simplified graph
     MainWindow w(&simplifiedGraph, centerLat, centerLon, defaultZoomLevel);
     w.show();
+
+    // Place random obstacles
+    SimulationManager* simManager = w.findChild<SimulationManager*>();
+    if(simManager){
+        simManager->placeRandomObstacles(75); // Now handled by SimulationManager
+        qDebug() << "Random obstacles placed.";
+    } else {
+        qWarning() << "SimulationManager not found!";
+    }
 
     return app.exec();
 }
